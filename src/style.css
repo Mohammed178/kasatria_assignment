@@ -14,6 +14,44 @@ a {
   color: #8ff;
 }
 
+/* Step 3 pipeline check: plain list proving auth + fetch + parse.
+   Removed once tiles render the same data in 3D. */
+
+body.pipeline-check {
+  overflow: auto;
+}
+
+#panel {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 40px 20px;
+}
+
+#status {
+  color: rgba(127, 255, 255, 0.75);
+}
+
+#status.error {
+  color: #f88;
+}
+
+#list {
+  padding-left: 3em;
+  line-height: 1.6;
+}
+
+#list li.red {
+  color: #f88;
+}
+
+#list li.orange {
+  color: #fc8;
+}
+
+#list li.green {
+  color: #8f8;
+}
+
 #menu {
   position: absolute;
   bottom: 20px;
