@@ -12,11 +12,19 @@ const tweens = new Group();
 
 let camera, scene, renderer, controls;
 let started = false;
+let frameId = null;
 
 const objects = [];
 const targets = { table: [], sphere: [], helix: [], grid: [] };
 
-export function initScene(container, people) {
+// Undo functions for everything initScene attaches outside its own DOM, so
+// signing out can put the page back the way it found it.
+const cleanups = [];
+
+// Pointer travel beyond this is treated as a camera drag, not a tile click.
+const CLICK_SLOP = 5;
+
+export function initScene(container, people, onSelect) {
 	// Runs after an async fetch, so guard against a second call.
 	if (started) return;
 	started = true;
@@ -28,15 +36,16 @@ export function initScene(container, people) {
 
 	scene = new THREE.Scene();
 
-	for (const person of people) {
+	people.forEach((person, index) => {
 		const objectCSS = createPersonTile(person);
+		objectCSS.element.dataset.index = index;
 		objectCSS.position.x = Math.random() * 4000 - 2000;
 		objectCSS.position.y = Math.random() * 4000 - 2000;
 		objectCSS.position.z = Math.random() * 4000 - 2000;
 		scene.add(objectCSS);
 
 		objects.push(objectCSS);
-	}
+	});
 
 	targets.table = buildTableTargets(objects.length);
 	targets.sphere = buildSphereTargets(objects.length);
@@ -53,6 +62,11 @@ export function initScene(container, people) {
 	controls.addEventListener('change', render);
 
 	window.addEventListener('resize', onWindowResize);
+	cleanups.push(() => window.removeEventListener('resize', onWindowResize));
+
+	if (onSelect) {
+		listenForTileClicks(container, people, onSelect);
+	}
 
 	// Draw once up front so tiles are on screen even before a transition runs.
 	render();
@@ -64,6 +78,77 @@ export function initScene(container, people) {
 export function showLayout(name) {
 	if (!started) return;
 	transform(targets[name], 2000);
+}
+
+// Signing out returns to the sign-in card, and signing back in calls initScene
+// again with a different dataset. Without this the `started` guard would make
+// that second call a no-op, and the previous 200 tiles would still be on
+// screen. Everything built in initScene is torn down here.
+export function disposeScene() {
+	if (!started) return;
+	started = false;
+
+	cancelAnimationFrame(frameId);
+	frameId = null;
+
+	tweens.removeAll();
+
+	for (const undo of cleanups.splice(0)) undo();
+
+	controls.dispose();
+	renderer.domElement.remove();
+
+	for (const object of objects) scene.remove(object);
+	objects.length = 0;
+
+	for (const name of Object.keys(targets)) targets[name] = [];
+
+	camera = scene = renderer = controls = undefined;
+}
+
+// One delegated listener rather than 200. TrackballControls shares these
+// events, so a pointer that travelled is a camera drag and must not open a
+// tile.
+function listenForTileClicks(container, people, onSelect) {
+	let startX = 0;
+	let startY = 0;
+	let downTile = null;
+
+	const onPointerDown = (event) => {
+		startX = event.clientX;
+		startY = event.clientY;
+		downTile = event.target.closest?.('.element') || null;
+	};
+
+	const onPointerUp = (event) => {
+		const pressedTile = downTile;
+		downTile = null;
+
+		const travelled = Math.abs(event.clientX - startX) > CLICK_SLOP
+			|| Math.abs(event.clientY - startY) > CLICK_SLOP;
+
+		if (travelled) return;
+
+		// `event.target` is useless here: TrackballControls calls
+		// setPointerCapture on the renderer element in its own pointerdown
+		// handler, which retargets every later pointer event in the sequence to
+		// that element. Hit test the release point instead, and fall back to
+		// whatever the press landed on.
+		const released = document.elementFromPoint(event.clientX, event.clientY);
+		const tile = released?.closest?.('.element') || pressedTile;
+
+		if (!tile) return;
+
+		onSelect(people[Number(tile.dataset.index)], tile);
+	};
+
+	container.addEventListener('pointerdown', onPointerDown);
+	container.addEventListener('pointerup', onPointerUp);
+
+	cleanups.push(() => {
+		container.removeEventListener('pointerdown', onPointerDown);
+		container.removeEventListener('pointerup', onPointerUp);
+	});
 }
 
 function transform(newTargets, duration) {
@@ -101,7 +186,7 @@ function onWindowResize() {
 }
 
 function animate() {
-	requestAnimationFrame(animate);
+	frameId = requestAnimationFrame(animate);
 
 	tweens.update();
 	controls.update();

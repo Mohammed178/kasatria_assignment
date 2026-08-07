@@ -30,6 +30,7 @@
   <div id="scene-view" hidden>
     <div id="container"></div>
     <div id="info"></div>
+    <button id="signout" type="button">SIGN OUT</button>
     <div id="menu">
       <button id="table">TABLE</button>
       <button id="sphere">SPHERE</button>
@@ -40,6 +41,26 @@
       <span>LOW</span>
       <span class="ramp"></span>
       <span>High</span>
+    </div>
+
+    <div id="confirm" hidden>
+      <div class="confirm-backdrop"></div>
+      <div class="confirm-card" role="alertdialog" aria-modal="true" aria-labelledby="confirm-title">
+        <h2 id="confirm-title">Sign out?</h2>
+        <p>This closes the dataset and returns you to the sign-in page, where you can pick a different Google account.</p>
+        <div class="confirm-actions">
+          <button id="confirm-cancel" type="button">CANCEL</button>
+          <button id="confirm-ok" type="button">SIGN OUT</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="detail" hidden>
+      <div class="detail-backdrop"></div>
+      <div class="detail-card" role="dialog" aria-modal="true" aria-label="Person details">
+        <button class="detail-close" type="button" aria-label="Close">&times;</button>
+        <div class="detail-body"></div>
+      </div>
     </div>
   </div>
 

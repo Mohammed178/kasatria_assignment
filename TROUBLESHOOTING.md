@@ -279,6 +279,107 @@ the dashboard does nothing until a redeploy.
 
 ---
 
+## 8. Closing the Google account chooser locked the sign-in button
+
+**Symptoms:** open the app, click "Sign in with Google", close the account
+selection popup without picking an account. The button stays greyed out and the
+status stays on "Requesting access...". Clicking it again does nothing. Only a
+full page reload makes signing in possible again.
+
+**What it looked like:** a stuck disabled attribute on the button.
+
+**Actual cause:** the GIS token client never settles the promise on a dismissed
+popup. `initTokenClient` has two separate handlers:
+
+- `callback` fires only on a completed flow (granted or explicitly denied).
+- `error_callback` fires for `popup_closed`, `popup_failed_to_open` and
+  `unknown`.
+
+`auth.js` set only `callback`, so a closed popup produced no call at all. The
+`await requestAccessToken()` in `signInAndLoad()` never resolved or rejected,
+the `catch` block that re-enables the button was never reached, and the promise
+was left pending forever.
+
+**Fix:** set `error_callback` per request alongside `callback`, guard both with
+a `settled` flag so whichever fires first wins, and map the GIS error type to a
+readable message.
+
+```js
+tokenClient.error_callback = (error) => {
+    settle(reject, new Error(ERROR_MESSAGES[error?.type] || 'Sign-in failed. Try again.'));
+};
+```
+
+`main.js` also re-enables the button in a `finally` rather than the `catch`, so
+a throw anywhere in the flow, including inside `startScene()`, still leaves the
+button usable.
+
+**Lesson:** a promise wrapped around a callback API needs every terminal path
+covered. One unhandled path is not an error, it is a hang, which is harder to
+spot because nothing is logged.
+
+---
+
+## 9. Tiles could not be clicked with a real mouse, but worked under automation
+
+**Symptoms:** clicking a tile did nothing. The tile highlighted on hover, so it
+was receiving pointer events, and the console was clean. Driving the same click
+through Chrome DevTools automation opened the detail panel every time, which
+made it look like a machine-specific or stale-build problem.
+
+**Actual cause:** `TrackballControls` takes pointer capture.
+
+`node_modules/three/examples/jsm/controls/TrackballControls.js`:
+
+```js
+function onPointerDown( event ) {
+    if ( this._pointers.length === 0 ) {
+        this.domElement.setPointerCapture( event.pointerId );
+        ...
+```
+
+`domElement` is the `CSS3DRenderer` div. Once it has captured the pointer,
+every later pointer event in that sequence, including `pointerup`, is
+**retargeted to the renderer div**. The click handler was doing:
+
+```js
+const tile = event.target.closest('.element');   // always null
+```
+
+`event.target` is the renderer, which is an *ancestor* of the tiles, so
+`closest()` never matched and the handler returned early every time.
+
+**Why automation hid it:** CDP-synthesized mouse input does not produce an
+active pointer for capture purposes. Logging `rendererEl.hasPointerCapture(id)`
+during a synthetic click returns `false` at both `pointerdown` and `pointerup`,
+so the target was never retargeted and the buggy code path looked correct. Only
+a real mouse reproduces it.
+
+**Fix:** stop using the event target. Hit test the release point, and keep the
+element the press landed on as a fallback.
+
+```js
+const released = document.elementFromPoint(event.clientX, event.clientY);
+const tile = released?.closest?.('.element') || pressedTile;
+```
+
+`elementFromPoint` is pure hit testing and is unaffected by pointer capture.
+The `pressedTile` fallback is safe because capture only affects *subsequent*
+events, so the `pointerdown` event itself still carries the real target.
+
+**Lesson:** a passing automated check is not proof when the automation does not
+reproduce the input semantics. Pointer capture, drag and drop, hover intent and
+focus follow different paths for synthetic events.
+
+**Testing without Google:** `npm run dev` then `/?demo` loads a generated
+dataset through the same `startScene` path, so the scene, the pop-out and sign
+out can be exercised without an account. The branch is behind
+`import.meta.env.DEV`, so Vite drops it and `demoData.js` from production
+builds. Verified with `grep -c "Demo Person\|demoPeople" dist/assets/*.js`,
+which returns 0.
+
+---
+
 ## Recurring lesson
 
 Three of the five problems above produced an error message that pointed at the
@@ -290,6 +391,8 @@ wrong layer:
 | Stuck on "Fetching sheet..." | Network / API | CSS `display` beating `[hidden]` |
 | `Unable to parse range` | Malformed A1 string | Tab name did not exist |
 | Stale value after `.env` fix | Config still wrong | Module cache |
+| Sign-in button stays disabled | Button state bug | Promise never settled, GIS reports popup dismissal on a second handler |
+| Tile clicks ignored, hover fine | Stale build or bad coordinates | TrackballControls pointer capture retargeting `pointerup` |
 
 The technique that resolved all three was the same: **verify what the running
 code actually contains**, rather than what the source says it should. Grep the

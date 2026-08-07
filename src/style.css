@@ -175,6 +175,34 @@ body.scene-active {
   background-color: rgba(0, 255, 255, 0.75);
 }
 
+/* Sign out, top right, deliberately quieter than the layout buttons. */
+
+#signout {
+  position: absolute;
+  top: 14px;
+  right: 20px;
+  z-index: 1;
+  padding: 5px 11px;
+  font-family: inherit;
+  font-size: 11px;
+  letter-spacing: 0.5px;
+  color: rgba(255, 255, 255, 0.6);
+  background: transparent;
+  outline: 1px solid rgba(255, 255, 255, 0.35);
+  border: 0;
+  cursor: pointer;
+}
+
+#signout:hover {
+  color: #fff;
+  outline-color: rgba(255, 255, 255, 0.8);
+}
+
+#signout:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
 /* Net-worth colour ramp, taken from the swatches in "Image B". */
 :root {
   --worth-low: #ef3022;
@@ -219,8 +247,11 @@ body.scene-active {
   text-align: center;
   line-height: normal;
   color: #fff;
-  cursor: default;
   overflow: hidden;
+  /* CSS3DRenderer sets pointer-events: none on its wrapper, so tiles have to
+     opt back in to be clickable. */
+  pointer-events: auto;
+  cursor: pointer;
 }
 
 .element.red {
@@ -299,4 +330,200 @@ body.scene-active {
   font-size: 10px;
   font-weight: bold;
   letter-spacing: 0.2px;
+}
+
+/* Sign-out confirmation. Sits above the detail panel so it is never buried. */
+
+#confirm {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+}
+
+.confirm-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.72);
+}
+
+.confirm-card {
+  position: relative;
+  width: 340px;
+  padding: 24px 24px 20px;
+  color: #fff;
+  background-color: rgba(20, 20, 20, 0.97);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  box-shadow: 0 0 40px rgba(0, 0, 0, 0.6);
+}
+
+.confirm-card h2 {
+  margin: 0 0 10px;
+  font-size: 17px;
+  font-weight: bold;
+}
+
+.confirm-card p {
+  margin: 0 0 22px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.confirm-actions button {
+  padding: 7px 14px;
+  font-family: inherit;
+  font-size: 11px;
+  letter-spacing: 0.5px;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+
+#confirm-cancel {
+  color: rgba(255, 255, 255, 0.65);
+  outline: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+#confirm-cancel:hover {
+  color: #fff;
+  outline-color: rgba(255, 255, 255, 0.7);
+}
+
+#confirm-ok {
+  color: #fff;
+  background-color: rgba(239, 48, 34, 0.75);
+  outline: 1px solid var(--worth-low);
+}
+
+#confirm-ok:hover {
+  background-color: rgba(239, 48, 34, 0.95);
+}
+
+/* Detail panel: the tile popped out, keeping the same colour language. */
+
+#detail {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+}
+
+.detail-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.72);
+  opacity: 0;
+  transition: opacity 0.2s ease-out;
+}
+
+#detail.is-open .detail-backdrop {
+  opacity: 1;
+}
+
+.detail-card {
+  position: relative;
+  width: 320px;
+  padding: 26px 24px 24px;
+  text-align: center;
+  color: #fff;
+  background-color: rgba(20, 20, 20, 0.96);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  opacity: 0;
+  transform: scale(0.85);
+  transform-origin: center center;
+  box-shadow: 0 0 40px rgba(0, 0, 0, 0.6);
+  /* Duration is mirrored by the close timer in detail.js. */
+  transition: opacity 0.2s ease-out, transform 0.28s cubic-bezier(0.2, 0.8, 0.25, 1);
+}
+
+.detail-card.is-open {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.detail-card.red {
+  background-color: rgba(74, 18, 14, 0.97);
+  border-color: var(--worth-low);
+}
+
+.detail-card.orange {
+  background-color: rgba(74, 58, 6, 0.97);
+  border-color: var(--worth-mid);
+}
+
+.detail-card.green {
+  background-color: rgba(22, 48, 18, 0.97);
+  border-color: var(--worth-high);
+}
+
+.detail-close {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  padding: 2px 8px;
+  font-size: 22px;
+  line-height: 1;
+  color: rgba(255, 255, 255, 0.65);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+
+.detail-close:hover {
+  color: #fff;
+}
+
+.detail-photo {
+  width: 132px;
+  height: 132px;
+  margin: 0 auto 16px;
+  overflow: hidden;
+  background-color: rgba(0, 0, 0, 0.45);
+  display: grid;
+  place-items: center;
+  font-size: 40px;
+  font-weight: bold;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.detail-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.detail-name {
+  margin: 0 0 18px;
+  font-size: 19px;
+  font-weight: bold;
+  line-height: 1.3;
+}
+
+.detail-fields {
+  margin: 0;
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: 7px 16px;
+  font-size: 13px;
+  text-align: left;
+}
+
+.detail-fields dt {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.detail-fields dd {
+  margin: 0;
+  text-align: right;
+  font-weight: bold;
 }
