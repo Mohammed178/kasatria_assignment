@@ -39,7 +39,7 @@ async function callApi(path, accessToken) {
 	return response.json();
 }
 
-// The tab name is not stable — it has been renamed at least once, and a wrong
+// The tab name is not stable, it has been renamed at least once, and a wrong
 // name surfaces as "Unable to parse range", which reads like a malformed A1
 // string rather than a missing tab. Read the real name instead of assuming it.
 export async function fetchTabTitles(accessToken) {
