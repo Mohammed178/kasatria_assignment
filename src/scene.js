@@ -3,7 +3,7 @@ import { Tween, Easing, Group } from '@tweenjs/tween.js';
 import { CSS3DRenderer } from 'three/examples/jsm/renderers/CSS3DRenderer.js';
 import { TrackballControls } from 'three/examples/jsm/controls/TrackballControls.js';
 import { createPersonTile } from './tile.js';
-import { buildTableTargets, buildSphereTargets, buildHelixTargets, buildGridTargets } from './layouts.js';
+import { buildTableTargets, buildSphereTargets, buildHelixTargets, buildGridTargets, buildTetraTargets } from './layouts.js';
 
 // tween.js v25 no longer auto-registers `new Tween(obj)` with the global group,
 // so tweens must be given an explicit group and that group updated by hand.
@@ -15,7 +15,7 @@ let started = false;
 let frameId = null;
 
 const objects = [];
-const targets = { table: [], sphere: [], helix: [], grid: [] };
+const targets = { table: [], sphere: [], helix: [], grid: [], pyramid: [] };
 
 // Undo functions for everything initScene attaches outside its own DOM, so
 // signing out can put the page back the way it found it.
@@ -51,6 +51,7 @@ export function initScene(container, people, onSelect) {
 	targets.sphere = buildSphereTargets(objects.length);
 	targets.helix = buildHelixTargets(objects.length);
 	targets.grid = buildGridTargets(objects.length);
+	targets.pyramid = buildTetraTargets(objects.length);
 
 	renderer = new CSS3DRenderer();
 	renderer.setSize(window.innerWidth, window.innerHeight);
@@ -165,6 +166,13 @@ function transform(newTargets, duration) {
 
 		new Tween(object.rotation, tweens)
 			.to({ x: target.rotation.x, y: target.rotation.y, z: target.rotation.z }, Math.random() * duration + duration)
+			.easing(Easing.Exponential.InOut)
+			.start();
+
+		// Only the pyramid scales tiles; every other target keeps the default 1,
+		// so this also restores them on the way out.
+		new Tween(object.scale, tweens)
+			.to({ x: target.scale.x, y: target.scale.y, z: target.scale.z }, Math.random() * duration + duration)
 			.easing(Easing.Exponential.InOut)
 			.start();
 	}

@@ -4,7 +4,7 @@ import { fetchPeople } from './sheets.js';
 import { initScene, showLayout, disposeScene } from './scene.js';
 import { createDetailPanel } from './detail.js';
 
-const LAYOUTS = ['table', 'sphere', 'helix', 'grid'];
+const LAYOUTS = ['table', 'sphere', 'helix', 'grid', 'pyramid'];
 
 const signinView = document.getElementById('signin-view');
 const signinButton = document.getElementById('signin');

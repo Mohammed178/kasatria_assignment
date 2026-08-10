@@ -1,4 +1,4 @@
-import { buildTableTargets, buildSphereTargets, buildHelixTargets, buildGridTargets } from './src/layouts.js';
+import { buildTableTargets, buildSphereTargets, buildHelixTargets, buildGridTargets, buildTetraTargets } from './src/layouts.js';
 
 const N = 200;
 const uniq = (arr) => [...new Set(arr.map((v) => Math.round(v * 1000) / 1000))];
@@ -42,6 +42,25 @@ check('strand 0 radius constant', uniq(even.map((o) => Math.hypot(o.position.x, 
 const sphere = buildSphereTargets(N);
 console.log('\n--- Sphere: unchanged from demo ---');
 check('all points on radius 800', uniq(sphere.map((o) => Math.round(Math.hypot(o.position.x, o.position.y, o.position.z)))).join(), '800');
+
+const tetra = buildTetraTargets(N);
+console.log('\n--- Pyramid: 4 triangular faces, 50 each ---');
+check('every slot filled', tetra.filter(Boolean).length, 200);
+// A face is a plane; tiles on it share one normal, so grouping by rotation
+// recovers the faces without knowing the vertices here.
+const byFacing = new Map();
+for (const o of tetra) {
+	const key = [o.rotation.x, o.rotation.y, o.rotation.z].map((v) => Math.round(v * 1000)).join();
+	byFacing.set(key, (byFacing.get(key) ?? 0) + 1);
+}
+check('distinct facings (faces)', byFacing.size, 4);
+check('tiles per face', [...byFacing.values()].join(), '50,50,50,50');
+const radii = tetra.map((o) => Math.hypot(o.position.x, o.position.y, o.position.z));
+check('all tiles inside the hull', Math.max(...radii) < 1700 * Math.sqrt(3 / 8), true);
+const scales = tetra.map((o) => o.scale.x);
+check('scales within [0.3, 1]', Math.min(...scales) >= 0.3 && Math.max(...scales) <= 1, true);
+check('corner tiles shrunk, middle tiles not', Math.min(...scales) < 0.5 && Math.max(...scales) === 1, true);
+check('scale is uniform', tetra.every((o) => o.scale.x === o.scale.y && o.scale.y === o.scale.z), true);
 
 const failed = results.filter((r) => !r).length;
 console.log(`\n${results.length - failed}/${results.length} checks passed`);
